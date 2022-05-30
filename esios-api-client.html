@@ -1,0 +1,44 @@
+<script type="text/javascript">
+    RED.nodes.registerType('esios-api-client',{
+        category: 'network',
+        color: '#DAA520',
+        defaults: {
+            apiToken: {value:"",required:true},
+            pvpcEndpoint:{value:"https://api.esios.ree.es/archives/70/download_json",required:true},
+            pmhEndpoint:{value:"https://api.esios.ree.es/indicators/1739",required:true},
+            refreshPeriod:{value:"300",required:false}
+        }, 
+        inputs:0,
+        outputs:1,
+        icon: "feed.svg",
+        label: function() {
+            return this.name||"esios-api-client";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="esios-api-client">
+    <div class="form-row">
+        <label for="node-input-apiToken"><i class="fa fa-tag"></i> Api Token</label>
+        <input type="text" id="node-input-apiToken" placeholder="Token">
+    </div>
+    <div class="form-row">
+        <label for="node-input-pvpcEndpoint"><i class="fa fa-tag"></i> Pvpc Endpoint</label>
+        <input type="text" id="node-input-pvpcEndpoint" placeholder="PVPC Endpoint">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-pmhEndpoint"><i class="fa fa-tag"></i> PMH EndPoint</label>
+        <input type="text" id="node-input-pmhEndpoint" placeholder="PMH Endpoint">
+    </div>
+
+    <div class="form-row">
+        <label for="node-input-refreshPeriod"><i class="fa fa-tag"></i> Refresh Api Period in seconds</label>
+        <input type="text" id="node-input-refreshPeriod" placeholder="Refresh Period">
+    </div>
+
+</script>
+
+<script type="text/html" data-help-name="esios-api-client">
+    <p>A simple node https client for esios ree </p>
+</script>
