@@ -191,3 +191,4 @@ node_modules/typescript/loc/lcl/TRK/TypeScriptTasks/TypeScript.Tasks.dll.lcl
 node_modules/.package-lock.json
 package-lock.json
 .gitignore
+package-lock.json
