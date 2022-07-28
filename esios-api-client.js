@@ -6,12 +6,14 @@ const DateTimeFormatter=require('@js-joda/core').DateTimeFormatter;
 const Interval=require('@js-joda/extra').Interval;
 const Instant=require('@js-joda/core').Instant;
 const ZoneId=require('@js-joda/core').ZoneId;
+const EsiosApiClient=require("./build/EsiosApiClient.js");
 
 
-require("@js-joda/timezone");
+//require("@js-joda/timezone");
 
 const Map = require("collections/map");
-
+const { PricesTables } = require('@virtualbat/entities/dist/src/PriceTables.js');
+/* 
 class PricesTables{
     constructor(){
         this.pricesToSell=new Map();
@@ -71,7 +73,7 @@ class PvpcItem{
         return this.TEUPCB;
     }
 
-}
+} */
 
 class PmhItem{
 
@@ -112,7 +114,7 @@ module.exports = function(RED) {
     var looper=null;
     
 
-    var pricesTables=new PricesTables();
+    //var pricesTables=new PricesTables();
 
     function EsiosApiClientNode(config) {
         
@@ -123,7 +125,10 @@ module.exports = function(RED) {
         var apiToken=config.apiToken;
         var pvpcEndpoint=config.pvpcEndpoint;
         var pmhEndpoint=config.pmhEndpoint;
+        var teuEndpoint="https://api.esios.ree.es/indicators/10393";
+      //  var potEndpoint="https://api.esios.ree.es/indicators/1739";
         var refreshPeriod=config.refreshPeriod||300;
+        var esiosApiClient=new EsiosApiClient.EsiosApiClient();
 
         this.on('close', function() {
             clearTimeout(looper);
@@ -134,13 +139,49 @@ module.exports = function(RED) {
 
 
         function mainProcess(){
-            getPVPCPrices().then(function(){
-                clearTimeout(looper);
-                looper=setTimeout(getPVPCPrices,calcTimeOutToCall());
-            });
+            _requestData();
         }
 
-        function getPVPCPrices(){   
+        function _requestData(){
+            esiosApiClient.requestPrices(pvpcEndpoint,apiToken,(res,pricesTables)=>{
+                console.log(pricesTables.get());
+                node.send({payload:{pricesTables:pricesTables.get()}});
+                setNodeStatus(res);
+            },(error)=>{
+                _onError(error);
+            }).then(()=>{
+                clearTimeout(looper);
+                looper=setTimeout(_requestData,calcTimeOutToCall());
+            });
+        }
+        /*function _requestData(){
+            esiosApiClient.getPVPCPrices(pvpcEndpoint,apiToken
+                ,(res,pTables)=>{
+                setNodeStatus(res);
+                esiosApiClient.getPMHPrices(pmhEndpoint,apiToken,(res,pTables)=>{
+                    setNodeStatus(res);
+                    esiosApiClient.getTEUPrices(teuEndpoint,apiToken,(res,pTables)=>{
+                        setNodeStatus(res);
+                        node.send(pricesTables.get());
+                    },error=>_onError(error))
+                },(error)=>{
+                    _onError(error);
+                });
+            },(error)=>{
+                _onError(error);
+
+            }).then(function(){
+                clearTimeout(looper);
+                looper=setTimeout(_requestData,calcTimeOutToCall());
+              
+            });
+        }*/
+
+        function _onError(error){
+            node.status({fill:"red",shape:"dot",text:"Error: "+error});
+        }
+
+      /*   function getPVPCPrices(){   
             return axios
               .get(pvpcEndpoint,{params:{
                 date:LocalDateTime.now().format(DateTimeFormatter.ofPattern('yyyy-MM-dd'))
@@ -192,7 +233,7 @@ module.exports = function(RED) {
                 node.status({fill:"red",shape:"dot",text:"Error: "+error});
                 console.error(error);
               });
-        }
+        } */
 
         function setNodeStatus(res){
             if(res.status===200){

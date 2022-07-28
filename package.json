@@ -8,7 +8,12 @@
   },
   "author": "Luis Martínez",
   "license": "ISC",
-  "keywords": ["node-red","esios", "rest","client"],
+  "keywords": [
+    "node-red",
+    "esios",
+    "rest",
+    "client"
+  ],
   "node-red": {
     "nodes": {
       "esios-api-client": "esios-api-client.js"
@@ -18,7 +23,9 @@
     "@js-joda/core": "^5.2.0",
     "@js-joda/extra": "^0.8.0",
     "@js-joda/timezone": "^2.12.0",
+    "@virtualbat/entities": "file:../node-red-contrib-virtual-battery-entities",
     "axios": "^0.27.2",
-    "collections": "^5.1.13"
+    "collections": "^5.1.13",
+    "typescript": "^4.7.4"
   }
 }

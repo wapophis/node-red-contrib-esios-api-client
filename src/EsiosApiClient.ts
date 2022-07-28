@@ -1,0 +1,193 @@
+import { DateTimeFormatter, LocalDate, LocalDateTime, ZonedDateTime, ZoneId } from "@js-joda/core";
+import { Interval } from "@js-joda/extra";
+import {PmhItem, PmhItemSerialized, PriceIntervalItem, PricesTables, PvpcItem, PvpcItemSerialized} from "@virtualbat/entities/dist/src";
+import axios from "axios";
+import '@js-joda/timezone'
+import { isMetaProperty } from "typescript";
+
+export class EsiosApiClient{
+    pricesTables:PricesTables|null=null;
+
+    constructor(){
+        this.pricesTables=new PricesTables();
+    }
+
+    requestPrices(endPoint:string,apiToken:string,onSucess:Function,onError:Function):Promise<any>{
+      console.log(arguments);
+        return axios
+          .get(endPoint,{params:{
+            date:LocalDateTime.now().format(DateTimeFormatter.ofPattern('yyyy-MM-dd'))
+          },headers:{
+            "Authorization":'Token token="'+apiToken+'"'
+          }
+        })
+          .then(res => {
+            console.log("QUERY PVPC RESOLVED");
+              res.data.PVPC.forEach((element:any) => {
+                this.pricesTables?.addPriceToBuy(EsiosApiClient._getPvpC(element));
+                this.pricesTables?.addPricetoSell(EsiosApiClient._getPmh(element));
+                this.pricesTables?.addEnergyTerm(EsiosApiClient._getTEU(element));
+              });
+              onSucess(res,this.pricesTables);                
+          })
+          .catch(error => {
+            onError(error);
+          });
+    }
+
+   private static _getPvpC(serItem:any):PriceIntervalItem{
+      let item:PriceIntervalItem=new PriceIntervalItem();
+      item.setInterval(EsiosApiClient._getInterval(serItem));
+      item.setPrice(parseFloat(serItem.PCB.toString().replace(/,/g, '.')));
+      return item;
+    }
+
+    private static _getPmh(serItem:any):PriceIntervalItem{
+      let item:PriceIntervalItem=new PriceIntervalItem();
+      item.setInterval(EsiosApiClient._getInterval(serItem));
+      item.setPrice(parseFloat(serItem.PMH.toString().replace(/,/g, '.')));
+      return item;
+    }
+
+    private static _getTEU(serItem:any):PriceIntervalItem{
+      let item:PriceIntervalItem=new PriceIntervalItem();
+      item.setInterval(EsiosApiClient._getInterval(serItem));
+      item.setPrice(parseFloat(serItem.TEUPCB.toString().replace(/,/g, '.')));
+      return item;
+    }
+    
+    private static _getInterval(serItem:any):Interval{
+            let startHour=Number.parseInt(serItem.Hora.split("-")[0]);
+            let startDateTime=LocalDate.parse(serItem.Dia,DateTimeFormatter.ofPattern("dd/MM/yyyy")).atTime(startHour,0,0,0);
+            let endDateTime=startDateTime.plusHours(1);
+            let startInstant=startDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
+            let endInstant=endDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
+            return Interval.of(startInstant,endInstant);
+        }
+            
+
+    /*getPVPCPrices(pvpcEndpoint:string,apiToken:string,onSucess:Function,onError:Function):Promise<any>{   
+        console.log(arguments);
+        return axios
+          .get(pvpcEndpoint,{params:{
+            date:LocalDateTime.now().format(DateTimeFormatter.ofPattern('yyyy-MM-dd'))
+          },headers:{
+            "Authorization":'Token token="'+apiToken+'"'
+          }
+        })
+          .then(res => {
+            console.log("QUERY PVPC RESOLVED");
+              res.data.PVPC.forEach((element:PvpcItemSerialized) => {
+                this.pricesTables?.addPriceToBuy(new PvpcItem(PvpcItemSerialized.of(element)));
+              });
+              onSucess(res,this.pricesTables);                
+          })
+          .catch(error => {
+            onError(error);
+          });
+    }
+
+
+    getPMHPrices(pmhEndpoint:string,apiToken:string,onSucess:Function,onError:Function){   
+        console.log(arguments);
+        return axios
+          .get(pmhEndpoint,{params:{
+            start_date:LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
+            ,end_date:LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
+            ,geo_agg:"sum"
+            ,geo_ids:""
+            ,time_trunc:"hour"
+            ,time_agg:""
+            ,locale:"es"
+            
+          },headers:{
+            "Authorization":'Token token="'+apiToken+'"'
+          }
+        })
+          .then(res => {
+             // console.log(res);
+             console.log("QUERY PMH RESOLVED");
+              res.data.indicator.values.forEach((element:PmhItemSerialized) => {
+                this.pricesTables?.addPricetoSell(PmhItem.of(element));
+              });                
+              onSucess(res,this.pricesTables);
+          })
+          .catch(error => {
+            onError(error);
+            console.error(error);
+          });
+    }
+
+    getTEUPrices(pmhEndpoint:string,apiToken:string,onSucess:Function,onError:Function){   
+        console.log(arguments);
+        return axios
+          .get(pmhEndpoint,{params:{
+            start_date:LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
+            ,end_date:LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
+            ,geo_agg:"sum"
+            ,geo_ids:""
+            ,time_trunc:"hour"
+            ,time_agg:""
+            ,locale:"es"
+            
+          },headers:{
+            "Authorization":'Token token="'+apiToken+'"'
+          }
+        })
+          .then(res => {
+             // console.log(res);
+             console.log("QUERY TEU RESOLVED");
+             let teuMap:Map<Interval,PriceIntervalItem>=new Map();
+              res.data.indicator.values.forEach((element:any) => {
+                
+                if(element.geo_id===8741){
+                    let myItem:PriceIntervalItem=new PriceIntervalItem();
+                    let parcheTime=element.datetime.split(".")[0]+"+"+element.datetime.split(".")[1].split("+")[1];
+                    let startIntervalDate:LocalDateTime=LocalDateTime.parse(parcheTime,DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                    let endIntervalDate:LocalDateTime=startIntervalDate.plusHours(1);
+                    
+                    myItem.setInterval(Interval.of(startIntervalDate.atZone(ZoneId.of("Europe/Madrid")).toInstant(),endIntervalDate.atZone(ZoneId.of("Europe/Madrid")).toInstant()));
+                    myItem.setPrice(element.value);
+                    teuMap.set(myItem.getInterval(),myItem);
+                }
+
+              });                
+              this.pricesTables?.setEnergyTerm(teuMap);
+              onSucess(res,this.pricesTables);
+          })
+          .catch(error => {
+            onError(error);
+            console.error(error);
+          });
+    }*/
+
+   /* getTPPrices(pmhEndpoint:string,apiToken:string,onSucess:Function,onError:Function){   
+        console.log(arguments);
+        return axios
+          .get(pmhEndpoint,{params:{
+            start_date:LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
+            ,end_date:LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
+            ,geo_agg:"sum"
+            ,geo_ids:""
+            ,time_trunc:"hour"
+            ,time_agg:""
+            ,locale:"es"
+            
+          },headers:{
+            "Authorization":'Token token="'+apiToken+'"'
+          }
+        })
+          .then(res => {
+             // console.log(res);
+             console.log("QUERY PMH RESOLVED");
+              res.data.indicator.values.forEach((element:PmhItemSerialized) => {
+                this.pricesTables?.addPricetoSell(PmhItem.of(element));
+              });                
+              onSucess(res,this.pricesTables);
+          })
+          .catch(error => {
+            onError(error);
+            console.error(error);
+          });
+    }*/
+}
