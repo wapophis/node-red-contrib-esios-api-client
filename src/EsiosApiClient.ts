@@ -45,7 +45,9 @@ export class EsiosApiClient{
     private static _getPmh(serItem:any):PriceIntervalItem{
       let item:PriceIntervalItem=new PriceIntervalItem();
       item.setInterval(EsiosApiClient._getInterval(serItem));
-      item.setPrice(parseFloat(serItem.PMH.toString().replace(/,/g, '.')));
+      if(serItem.PMHPCB!==undefined){
+        item.setPrice(parseFloat(serItem.PMHPCB.toString().replace(/,/g, '.')));   
+      }
       return item;
     }
 

@@ -144,7 +144,7 @@ module.exports = function(RED) {
 
         function _requestData(){
             esiosApiClient.requestPrices(pvpcEndpoint,apiToken,(res,pricesTables)=>{
-                console.log(pricesTables.get());
+                
                 node.send({payload:{pricesTables:pricesTables.get()}});
                 setNodeStatus(res);
             },(error)=>{
@@ -179,6 +179,8 @@ module.exports = function(RED) {
 
         function _onError(error){
             node.status({fill:"red",shape:"dot",text:"Error: "+error});
+            throw error;
+            
         }
 
       /*   function getPVPCPrices(){   
