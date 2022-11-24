@@ -23,7 +23,7 @@
     "@js-joda/core": "^5.2.0",
     "@js-joda/extra": "^0.8.0",
     "@js-joda/timezone": "^2.12.0",
-    "@virtualbat/entities": "1.0.3",
+    "@virtualbat/entities": "1.0.4",
     "axios": "^0.27.2",
     "collections": "^5.1.13"
   }
