@@ -246,7 +246,7 @@ module.exports = function(RED) {
         }
 
         function calcTimeOutToCall(){
-            let nexUpdateAt=LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+            let nexUpdateAt=LocalDateTime.now().plusDays(1).withHour(0).withMinute(1).withSecond(0).withNano(0);
             let gap=(LocalDateTime.now().until(nexUpdateAt,ChronoUnit.SECONDS))*1000;
             if(gap<=0){
                 return 15000;
