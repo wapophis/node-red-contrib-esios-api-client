@@ -1,7 +1,8 @@
-import { DateTimeFormatter, LocalDate, LocalDateTime, ZonedDateTime, ZoneId } from "@js-joda/core";
+import { DateTimeFormatter, LocalDate, LocalDateTime, ZonedDateTime, ZoneId,ChronoUnit } from "@js-joda/core";
 import { Interval } from "@js-joda/extra";
 import {PmhItem, PmhItemSerialized, PriceIntervalItem, PricesTables, PvpcItem, PvpcItemSerialized} from "@virtualbat/entities/dist/src";
 import axios from "axios";
+import { AxiosRequestConfig } from "axios";
 import '@js-joda/timezone'
 import { isMetaProperty } from "typescript";
 
@@ -12,7 +13,7 @@ export class EsiosApiClient{
         this.pricesTables=new PricesTables();
     }
 
-    requestPrices(endPoint:string,apiToken:string,onSucess:Function,onError:Function):Promise<any>{
+    requestPrices(endPoint:string,apiToken:string):Promise<any>{
       console.log(arguments);
         return axios
           .get(endPoint,{params:{
@@ -25,15 +26,49 @@ export class EsiosApiClient{
             console.log("QUERY PVPC RESOLVED");
               res.data.PVPC.forEach((element:any) => {
                 this.pricesTables?.addPriceToBuy(EsiosApiClient._getPvpC(element));
-                this.pricesTables?.addPricetoSell(EsiosApiClient._getPmh(element));
+   //             this.pricesTables?.addPricetoSell(EsiosApiClient._getPmh(element));
                 this.pricesTables?.addEnergyTerm(EsiosApiClient._getTEU(element));
-              });
-              onSucess(res,this.pricesTables);                
-          })
-          .catch(error => {
-            onError(error);
+              });                 
           });
+          
     }
+
+    /**
+     * Request esios indicator. 
+     * @param endPoint 
+     * @param indicator 
+     * @param apiToken 
+     * @param onSucess 
+     * @param onError 
+     * @returns 
+     */
+    requestPriceToSellIndicator(endPoint:string,indicator:number,apiToken:string):Promise<any>{
+      let start_time=LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+      let end_time=LocalDateTime.now().withHour(23).withMinute(0).withSecond(0).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+      console.log(arguments
+        ,{range:{start_time:start_time,end_time:end_time}}
+        );
+      
+      return axios
+        .get(endPoint,{params:{
+          start_date:start_time,
+          end_date:end_time
+        },headers:{
+          'Authorization': 'Token token='+apiToken 
+        }
+      })
+        .then(res => {
+          console.log("RESPONSE:"+JSON.stringify(res.data));
+            res.data.indicator.values.forEach((element:any) => {
+              let item:PriceIntervalItem=new PriceIntervalItem();
+              item.setInterval(EsiosApiClient._getValueInterval(element));
+              item.setPrice(element.value);              
+              this.pricesTables?.addPricetoSell(item);
+            });
+                
+        });
+    }
+
 
    private static _getPvpC(serItem:any):PriceIntervalItem{
       let item:PriceIntervalItem=new PriceIntervalItem();
@@ -66,7 +101,14 @@ export class EsiosApiClient{
             let endInstant=endDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
             return Interval.of(startInstant,endInstant);
         }
-            
+
+    private static _getValueInterval(serItem:any):Interval{
+      let startDateTime=LocalDateTime.parse(serItem.datetime,DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+      let endDateTime=startDateTime.plusHours(1);
+      let startInstant=startDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
+      let endInstant=endDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
+      return Interval.of(startInstant,endInstant);
+    }
 
     /*getPVPCPrices(pvpcEndpoint:string,apiToken:string,onSucess:Function,onError:Function):Promise<any>{   
         console.log(arguments);

@@ -14,7 +14,7 @@ class EsiosApiClient {
         this.pricesTables = null;
         this.pricesTables = new src_1.PricesTables();
     }
-    requestPrices(endPoint, apiToken, onSucess, onError) {
+    requestPrices(endPoint, apiToken) {
         console.log(arguments);
         return axios_1.default
             .get(endPoint, { params: {
@@ -26,15 +26,43 @@ class EsiosApiClient {
             .then(res => {
             console.log("QUERY PVPC RESOLVED");
             res.data.PVPC.forEach((element) => {
-                var _a, _b, _c;
+                var _a, _b;
                 (_a = this.pricesTables) === null || _a === void 0 ? void 0 : _a.addPriceToBuy(EsiosApiClient._getPvpC(element));
-                (_b = this.pricesTables) === null || _b === void 0 ? void 0 : _b.addPricetoSell(EsiosApiClient._getPmh(element));
-                (_c = this.pricesTables) === null || _c === void 0 ? void 0 : _c.addEnergyTerm(EsiosApiClient._getTEU(element));
+                //             this.pricesTables?.addPricetoSell(EsiosApiClient._getPmh(element));
+                (_b = this.pricesTables) === null || _b === void 0 ? void 0 : _b.addEnergyTerm(EsiosApiClient._getTEU(element));
             });
-            onSucess(res, this.pricesTables);
+        });
+    }
+    /**
+     * Request esios indicator.
+     * @param endPoint
+     * @param indicator
+     * @param apiToken
+     * @param onSucess
+     * @param onError
+     * @returns
+     */
+    requestPriceToSellIndicator(endPoint, indicator, apiToken) {
+        let start_time = core_1.LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).format(core_1.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        let end_time = core_1.LocalDateTime.now().withHour(23).withMinute(0).withSecond(0).format(core_1.DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        console.log(arguments, { range: { start_time: start_time, end_time: end_time } });
+        return axios_1.default
+            .get(endPoint, { params: {
+                start_date: start_time,
+                end_date: end_time
+            }, headers: {
+                'Authorization': 'Token token=' + apiToken
+            }
         })
-            .catch(error => {
-            onError(error);
+            .then(res => {
+            console.log("RESPONSE:" + JSON.stringify(res.data));
+            res.data.indicator.values.forEach((element) => {
+                var _a;
+                let item = new src_1.PriceIntervalItem();
+                item.setInterval(EsiosApiClient._getValueInterval(element));
+                item.setPrice(element.value);
+                (_a = this.pricesTables) === null || _a === void 0 ? void 0 : _a.addPricetoSell(item);
+            });
         });
     }
     static _getPvpC(serItem) {
@@ -60,6 +88,13 @@ class EsiosApiClient {
     static _getInterval(serItem) {
         let startHour = Number.parseInt(serItem.Hora.split("-")[0]);
         let startDateTime = core_1.LocalDate.parse(serItem.Dia, core_1.DateTimeFormatter.ofPattern("dd/MM/yyyy")).atTime(startHour, 0, 0, 0);
+        let endDateTime = startDateTime.plusHours(1);
+        let startInstant = startDateTime.atZone(core_1.ZoneId.of("Europe/Madrid")).toInstant();
+        let endInstant = endDateTime.atZone(core_1.ZoneId.of("Europe/Madrid")).toInstant();
+        return extra_1.Interval.of(startInstant, endInstant);
+    }
+    static _getValueInterval(serItem) {
+        let startDateTime = core_1.LocalDateTime.parse(serItem.datetime, core_1.DateTimeFormatter.ISO_OFFSET_DATE_TIME);
         let endDateTime = startDateTime.plusHours(1);
         let startInstant = startDateTime.atZone(core_1.ZoneId.of("Europe/Madrid")).toInstant();
         let endInstant = endDateTime.atZone(core_1.ZoneId.of("Europe/Madrid")).toInstant();

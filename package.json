@@ -1,6 +1,6 @@
 {
   "name": "@virtualbat/esios-client",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Utility node to get pmh and pvpc readings.",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "@js-joda/core": "^5.2.0",
     "@js-joda/extra": "^0.8.0",
     "@js-joda/timezone": "^2.12.0",
-    "@virtualbat/entities": "1.0.5",
+    "@virtualbat/entities": "1.0.6",
     "axios": "^0.27.2",
     "collections": "^5.1.13"
   }

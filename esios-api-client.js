@@ -9,71 +9,9 @@ const ZoneId=require('@js-joda/core').ZoneId;
 const EsiosApiClient=require("./build/EsiosApiClient.js");
 
 
-//require("@js-joda/timezone");
-
 const Map = require("collections/map");
 const { PricesTables } = require('@virtualbat/entities/dist/src/PriceTables.js');
-/* 
-class PricesTables{
-    constructor(){
-        this.pricesToSell=new Map();
-        this.pricesToBuy=new Map();
-    }
 
-    addPriceToBuy(pvpcItem){
-        this.pricesToBuy.set(pvpcItem.interval,pvpcItem);
-    }
-
-    addPricetoSell(pmhItem){
-        this.pricesToSell.set(pmhItem.interval,pmhItem);
-    }
-
-    get(){
-        let msg={};
-        msg.payload={pricesTables:{
-            pricesToSell:this.pricesToSell.toObject(),
-            pricesToBuy:this.pricesToBuy.toObject()
-            }
-        }
-        return msg;
-    }
-
-    reset(){
-        this.pricesToSell.clear();
-        this.pricesToBuy.clear();
-    }
-}
-
-class PvpcItem{
-    constructor(fromEsios){
-        {
-            this.dia= fromEsios.Dia;
-            this.hora= fromEsios.Hora;
-            this.PCB= fromEsios.PCB;
-            this.TEUPCB= fromEsios.TEUPCB;
-            ///this.timeInterval=Interval.of(Instant.)
-            this.interval=this.getInterval();
-        }
-    }
-
-    getInterval(){
-        let startHour=this.hora.split("-")[0];
-        let startDateTime=LocalDate.parse(this.dia,DateTimeFormatter.ofPattern("dd/MM/yyyy")).atTime4(startHour,0,0,0);
-        let endDateTime=startDateTime.plusHours(1);
-        let startInstant=startDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
-        let endInstant=endDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
-        return new Interval(startInstant,endInstant);
-    }
-
-    getPrice(){
-        return parseFloat(this.PCB.replace(/,/g, '.'));
-    }
-
-    getPeaje(){
-        return this.TEUPCB;
-    }
-
-} */
 
 class PmhItem{
 
@@ -114,7 +52,7 @@ module.exports = function(RED) {
     var looper=null;
     
 
-    //var pricesTables=new PricesTables();
+
 
     function EsiosApiClientNode(config) {
         
@@ -126,7 +64,6 @@ module.exports = function(RED) {
         var pvpcEndpoint=config.pvpcEndpoint;
         var pmhEndpoint=config.pmhEndpoint;
         var teuEndpoint="https://api.esios.ree.es/indicators/10393";
-      //  var potEndpoint="https://api.esios.ree.es/indicators/1739";
         var refreshPeriod=config.refreshPeriod||300;
         var esiosApiClient=new EsiosApiClient.EsiosApiClient();
 
@@ -143,99 +80,32 @@ module.exports = function(RED) {
         }
 
         function _requestData(){
-            esiosApiClient.requestPrices(pvpcEndpoint,apiToken,(res,pricesTables)=>{
-                
-                node.send({payload:{pricesTables:pricesTables.get()}});
-                setNodeStatus(res);
+            esiosApiClient.requestPrices(pvpcEndpoint,apiToken).then(req=>{
+                esiosApiClient.requestPriceToSellIndicator(pmhEndpoint,apiToken).then(req=>{
+                    node.send({payload:{pricesTables:esiosApiClient.pricesTables.get()}});
+                    clearTimeout(looper);
+                    looper=setTimeout(_requestData,calcTimeOutToCall());
+                });
+
+            }).catch((error)=>{
+                console.log("Se produjo un error en la llamada "+error);
+            });
+            
+
+           /* esiosApiClient.requestPrices(pvpcEndpoint,apiToken,(res,pricesTables)=>{
+                requestSellPrices();
             },(error)=>{
                 _onError(error);
             }).then(()=>{
-                clearTimeout(looper);
-                looper=setTimeout(_requestData,calcTimeOutToCall());
-            });
-        }
-        /*function _requestData(){
-            esiosApiClient.getPVPCPrices(pvpcEndpoint,apiToken
-                ,(res,pTables)=>{
-                setNodeStatus(res);
-                esiosApiClient.getPMHPrices(pmhEndpoint,apiToken,(res,pTables)=>{
-                    setNodeStatus(res);
-                    esiosApiClient.getTEUPrices(teuEndpoint,apiToken,(res,pTables)=>{
-                        setNodeStatus(res);
-                        node.send(pricesTables.get());
-                    },error=>_onError(error))
-                },(error)=>{
-                    _onError(error);
-                });
-            },(error)=>{
-                _onError(error);
-
-            }).then(function(){
-                clearTimeout(looper);
-                looper=setTimeout(_requestData,calcTimeOutToCall());
               
-            });
-        }*/
+            }).then()*/
+        }
 
         function _onError(error){
             node.status({fill:"red",shape:"dot",text:"Error: "+error});
             throw error;
             
         }
-
-      /*   function getPVPCPrices(){   
-            return axios
-              .get(pvpcEndpoint,{params:{
-                date:LocalDateTime.now().format(DateTimeFormatter.ofPattern('yyyy-MM-dd'))
-              },headers:{
-                "Authorization":'Token token="'+apiToken+'"'
-              }
-            })
-              .then(res => {
-                console.log("QUERY PVPC RESOLVED");
-                  res.data.PVPC.forEach(element => {
-                    pricesTables.addPriceToBuy(new PvpcItem(element));
-                  });                
-                  setNodeStatus(res);
-                  getPMHPrices().then(function(){
-                    node.send(pricesTables.get());
-                  });
-              })
-              .catch(error => {
-                node.status({fill:"red",shape:"dot",text:"Error: "+error});
-                console.error(error);
-              });
-        }
-
-
-        function getPMHPrices(){   
-            return axios
-              .get(pmhEndpoint,{params:{
-                start_date:LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
-                ,end_date:LocalDateTime.now().withHour(23).withMinute(59).withSecond(59).withNano(0).format(DateTimeFormatter.ofPattern('yyyy-MM-dd HH:mm:ss'))
-                ,geo_agg:"sum"
-                ,geo_ids:""
-                ,time_trunc:"hour"
-                ,time_agg:""
-                ,locale:"es"
-                
-              },headers:{
-                "Authorization":'Token token="'+apiToken+'"'
-              }
-            })
-              .then(res => {
-                 // console.log(res);
-                 console.log("QUERY PMH RESOLVED");
-                  res.data.indicator.values.forEach(element => {
-                    pricesTables.addPricetoSell(new PmhItem(element));
-                  });                
-                  setNodeStatus(res);
-              })
-              .catch(error => {
-                node.status({fill:"red",shape:"dot",text:"Error: "+error});
-                console.error(error);
-              });
-        } */
 
         function setNodeStatus(res){
             if(res.status===200){
