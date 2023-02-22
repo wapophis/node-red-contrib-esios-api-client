@@ -19,7 +19,7 @@ export class EsiosApiClient{
           .get(endPoint,{params:{
             date:LocalDateTime.now().format(DateTimeFormatter.ofPattern('yyyy-MM-dd'))
           },headers:{
-            "Authorization":'Token token="'+apiToken+'"'
+            "x-api-key":apiToken
           }
         })
           .then(res => {
@@ -42,7 +42,7 @@ export class EsiosApiClient{
      * @param onError 
      * @returns 
      */
-    requestPriceToSellIndicator(endPoint:string,indicator:number,apiToken:string):Promise<any>{
+    requestPriceToSellIndicator(endPoint:string,apiToken:string):Promise<any>{
       let start_time=LocalDateTime.now().withHour(0).withMinute(0).withSecond(0).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
       let end_time=LocalDateTime.now().withHour(23).withMinute(0).withSecond(0).format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
       console.log(arguments
@@ -54,7 +54,7 @@ export class EsiosApiClient{
           start_date:start_time,
           end_date:end_time
         },headers:{
-          'Authorization': 'Token token='+apiToken 
+          'x-api-key': apiToken 
         }
       })
         .then(res => {
