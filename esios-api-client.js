@@ -65,7 +65,10 @@ module.exports = function(RED) {
         var pmhEndpoint=config.pmhEndpoint;
         var teuEndpoint="https://api.esios.ree.es/indicators/10393";
         var refreshPeriod=config.refreshPeriod||300;
+        var hoursOffset=config.hoursOffset;
         var esiosApiClient=new EsiosApiClient.EsiosApiClient();
+
+        esiosApiClient.setHoursOffset(hoursOffset);
 
         this.on('close', function() {
             clearTimeout(looper);

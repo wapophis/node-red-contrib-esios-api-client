@@ -8,9 +8,17 @@ import { isMetaProperty } from "typescript";
 
 export class EsiosApiClient{
     pricesTables:PricesTables|null=null;
+    hoursOffset:number=0;
 
     constructor(){
         this.pricesTables=new PricesTables();
+    }
+
+    setHoursOffset(hourOffset:number){
+      this.hoursOffset=hourOffset;
+    }
+    getHoursOffset():number{
+      return this.hoursOffset;
     }
 
     requestPrices(endPoint:string,apiToken:string):Promise<any>{
@@ -25,9 +33,9 @@ export class EsiosApiClient{
           .then(res => {
             console.log("QUERY PVPC RESOLVED");
               res.data.PVPC.forEach((element:any) => {
-                this.pricesTables?.addPriceToBuy(EsiosApiClient._getPvpC(element));
+                this.pricesTables?.addPriceToBuy(EsiosApiClient._getPvpC(element,this.hoursOffset));
    //             this.pricesTables?.addPricetoSell(EsiosApiClient._getPmh(element));
-                this.pricesTables?.addEnergyTerm(EsiosApiClient._getTEU(element));
+                this.pricesTables?.addEnergyTerm(EsiosApiClient._getTEU(element,this.hoursOffset));
               });                 
           });
           
@@ -70,31 +78,31 @@ export class EsiosApiClient{
     }
 
 
-   private static _getPvpC(serItem:any):PriceIntervalItem{
+   private static _getPvpC(serItem:any,hourOffset:number):PriceIntervalItem{
       let item:PriceIntervalItem=new PriceIntervalItem();
-      item.setInterval(EsiosApiClient._getInterval(serItem));
+      item.setInterval(EsiosApiClient._getInterval(serItem,hourOffset));
       item.setPrice(parseFloat(serItem.PCB.toString().replace(/,/g, '.')));
       return item;
     }
 
-    private static _getPmh(serItem:any):PriceIntervalItem{
+    private static _getPmh(serItem:any,hourOffset:number):PriceIntervalItem{
       let item:PriceIntervalItem=new PriceIntervalItem();
-      item.setInterval(EsiosApiClient._getInterval(serItem));
+      item.setInterval(EsiosApiClient._getInterval(serItem,hourOffset));
       if(serItem.PMHPCB!==undefined){
         item.setPrice(parseFloat(serItem.PMHPCB.toString().replace(/,/g, '.')));   
       }
       return item;
     }
 
-    private static _getTEU(serItem:any):PriceIntervalItem{
+    private static _getTEU(serItem:any,hourOffset:number):PriceIntervalItem{
       let item:PriceIntervalItem=new PriceIntervalItem();
-      item.setInterval(EsiosApiClient._getInterval(serItem));
+      item.setInterval(EsiosApiClient._getInterval(serItem,hourOffset));
       item.setPrice(parseFloat(serItem.TEUPCB.toString().replace(/,/g, '.')));
       return item;
     }
     
-    private static _getInterval(serItem:any):Interval{
-            let startHour=Number.parseInt(serItem.Hora.split("-")[0]);
+    private static _getInterval(serItem:any,hourOffset:number):Interval{
+            let startHour=Number.parseInt(serItem.Hora.split("-")[0])+hourOffset;
             let startDateTime=LocalDate.parse(serItem.Dia,DateTimeFormatter.ofPattern("dd/MM/yyyy")).atTime(startHour,0,0,0);
             let endDateTime=startDateTime.plusHours(1);
             let startInstant=startDateTime.atZone(ZoneId.of("Europe/Madrid")).toInstant();
