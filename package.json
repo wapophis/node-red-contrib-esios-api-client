@@ -1,6 +1,6 @@
 {
   "name": "@virtualbat/esios-client",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Utility node to get pmh and pvpc readings.",
   "main": "index.js",
   "scripts": {

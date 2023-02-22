@@ -7,7 +7,7 @@
             pvpcEndpoint:{value:"https://api.esios.ree.es/archives/70/download_json",required:true},
             pmhEndpoint:{value:"https://api.esios.ree.es/indicators/1739",required:true},            
             refreshPeriod:{value:"300",required:false},
-            hoursOffset:0
+            hoursOffset:{value:"0",required:true}
         }, 
         inputs:0,
         outputs:1,
@@ -40,7 +40,7 @@
 
     <div class="form-row">
         <label for="node-input-hoursOffset"><i class="fa fa-tag"></i> Offset in hours to apply at retrieved esios hours</label>
-        <input type="text" id="node-input-hoursOffset" placeholder="Hours offset +-">
+        <input type="number" id="node-input-hoursOffset" placeholder="Use plus/minus if needed" value="0">
     </div>
 
 </script>
